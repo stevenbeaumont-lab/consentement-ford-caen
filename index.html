@@ -42,6 +42,9 @@
   .navlink{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
     font-size:14px;cursor:pointer;font-weight:600;padding:8px 14px;border-radius:9px}
   .navlink:hover{background:rgba(255,255,255,.24)}
+  .header-link{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;
+    font-size:13px;cursor:pointer;font-weight:600;padding:8px 13px;border-radius:9px;white-space:nowrap}
+  .header-link:hover{background:rgba(255,255,255,.26)}
   .bar-actions{display:flex;gap:8px;align-items:center}
   .icon-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
     width:38px;height:38px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -82,7 +85,11 @@
   .chandis{opacity:.45;pointer-events:none}
   .sigwrap{position:relative;margin-top:4px}
   canvas.sig{width:100%;height:150px;border:1.5px dashed var(--line);border-radius:10px;background:#fff;touch-action:none;display:block}
-  .sighint{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);text-align:center;color:#BFC3CA;font-size:14px;pointer-events:none}
+  .sighint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;
+    color:#5A6B80;font-size:14px;font-weight:600;cursor:pointer;background:#EDF2F8;border:1px solid #CBD8E8;
+    padding:9px 18px;border-radius:22px;white-space:nowrap;transition:.15s}
+  .sighint:hover{background:#E1EAF4;border-color:#1B6EF3;color:#1B6EF3}
+  .sighint.sig-ready{background:#E4F3EA;border-color:var(--ok);color:var(--ok);pointer-events:none}
   .sigbar{display:flex;justify-content:flex-end;margin-top:6px}
   .clear{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline}
   .submit{width:100%;height:54px;border:none;border-radius:12px;background:var(--blue);color:#fff;
@@ -329,9 +336,10 @@
       <div class="logo-sep"></div>
       <div class="logo-slot" id="logo2-client"><div class="brand"><div class="titles">Ford Caen<small>Groupe Legrand</small></div></div></div>
     </div>
+    <button class="header-link" id="header-mode-btn" data-mode="revoke">Modifier mon accord</button>
   </div>
 
-  <div class="tabs" id="client-tabs">
+  <div class="tabs hide" id="client-tabs">
     <button class="tab on" data-mode="give">Donner mon accord</button>
     <button class="tab" data-mode="revoke">Modifier mon accord</button>
   </div>
@@ -908,24 +916,32 @@ async function signOut(){if(sb)await sb.auth.signOut();location.hash='#form';loc
 document.getElementById('signout-btn')&&(document.getElementById('signout-btn').onclick=signOut);
 
 
-/* ---------- Onglets client ---------- */
+/* ---------- Bascule Donner / Modifier ---------- */
+function switchMode(mode){
+  const give=mode==='give';
+  document.getElementById('give-block').classList.toggle('hide',!give);
+  document.getElementById('revoke-block').classList.toggle('hide',give);
+  document.getElementById('done-block').classList.add('hide');
+  document.getElementById('revoke-done').classList.add('hide');
+  // le lien d'en-tête propose l'autre mode
+  const hb=document.getElementById('header-mode-btn');
+  if(hb){
+    hb.dataset.mode = give ? 'revoke' : 'give';
+    hb.textContent  = give ? 'Modifier mon accord' : '← Donner mon accord';
+  }
+  window.scrollTo(0,0);
+  if(give)setTimeout(fit,30); else setTimeout(mFit,30);
+}
+document.getElementById('header-mode-btn').onclick=function(){switchMode(this.dataset.mode);};
 document.querySelectorAll('#client-tabs .tab').forEach(t=>{
-  t.onclick=()=>{
-    document.querySelectorAll('#client-tabs .tab').forEach(x=>x.classList.remove('on'));
-    t.classList.add('on');
-    const give=t.dataset.mode==='give';
-    document.getElementById('give-block').classList.toggle('hide',!give);
-    document.getElementById('revoke-block').classList.toggle('hide',give);
-    document.getElementById('done-block').classList.add('hide');
-    document.getElementById('revoke-done').classList.add('hide');
-    if(give)setTimeout(fit,30);
-    else setTimeout(mFit,30);
-  };
+  t.onclick=()=>switchMode(t.dataset.mode);
 });
 
 /* ---------- Signature ---------- */
 const cv=document.getElementById('sig'),ctx=cv.getContext('2d');
-let drawing=false,hasSig=false;
+let drawing=false,hasSig=false,sigArmed=false;
+const sigHintEl=document.getElementById('sighint');
+function armSig(){ if(sigArmed)return; sigArmed=true; sigHintEl.textContent='✍️ Vous pouvez signer'; sigHintEl.classList.add('sig-ready'); }
 function fit(){
   const r=cv.getBoundingClientRect();
   if(!r.width)return;
@@ -935,13 +951,19 @@ function fit(){
   ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0A0E14';
 }
 function pos(e){const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
-function start(e){e.preventDefault();drawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);}
+function start(e){
+  if(!sigArmed){e.preventDefault();armSig();return;}   // 1er contact = activation seulement
+  e.preventDefault();drawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);
+}
 function move(e){if(!drawing)return;e.preventDefault();const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();
-  if(!hasSig){hasSig=true;document.getElementById('sighint').style.display='none';check();}}
+  if(!hasSig){hasSig=true;sigHintEl.style.display='none';check();}}
 function end(){drawing=false;}
 cv.addEventListener('mousedown',start);cv.addEventListener('mousemove',move);window.addEventListener('mouseup',end);
 cv.addEventListener('touchstart',start,{passive:false});cv.addEventListener('touchmove',move,{passive:false});cv.addEventListener('touchend',end);
-document.getElementById('sig-clear').onclick=()=>{ctx.clearRect(0,0,cv.width,cv.height);hasSig=false;document.getElementById('sighint').style.display='';check();};
+sigHintEl.addEventListener('click',armSig);
+sigHintEl.addEventListener('mousedown',armSig);
+sigHintEl.addEventListener('touchstart',function(e){e.preventDefault();armSig();},{passive:false});
+document.getElementById('sig-clear').onclick=()=>{ctx.clearRect(0,0,cv.width,cv.height);hasSig=false;sigArmed=false;sigHintEl.style.display='';sigHintEl.textContent='Signez ici avec votre doigt';sigHintEl.classList.remove('sig-ready');check();};
 
 /* ---------- Validation ---------- */
 const prenom=document.getElementById('c-prenom'),nom=document.getElementById('c-nom'),tel=document.getElementById('c-tel'),mail=document.getElementById('c-mail'),ok=document.getElementById('c-ok'),no=document.getElementById('c-no'),btn=document.getElementById('c-submit'),box=document.getElementById('consent-box'),refuseBox=document.getElementById('refuse-box');
@@ -1099,17 +1121,25 @@ mOnChoice();
 
 /* seconde zone de signature (msig) */
 const mcv=document.getElementById('msig'),mctx=mcv.getContext('2d');
-let mDrawing=false,mHasSig=false;
+let mDrawing=false,mHasSig=false,mSigArmed=false;
+const mHintEl=document.getElementById('msighint');
+function mArmSig(){ if(mSigArmed)return; mSigArmed=true; mHintEl.textContent='✍️ Vous pouvez signer'; mHintEl.classList.add('sig-ready'); }
 function mFit(){const r=mcv.getBoundingClientRect();if(!r.width)return;mcv.width=r.width*2;mcv.height=r.height*2;
   mctx.setTransform(1,0,0,1,0,0);mctx.scale(2,2);mctx.lineWidth=2.2;mctx.lineCap='round';mctx.lineJoin='round';mctx.strokeStyle='#0A0E14';}
 function mPos(e){const r=mcv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
-function mStart(e){e.preventDefault();mDrawing=true;const p=mPos(e);mctx.beginPath();mctx.moveTo(p.x,p.y);}
+function mStart(e){
+  if(!mSigArmed){e.preventDefault();mArmSig();return;}
+  e.preventDefault();mDrawing=true;const p=mPos(e);mctx.beginPath();mctx.moveTo(p.x,p.y);
+}
 function mMove(e){if(!mDrawing)return;e.preventDefault();const p=mPos(e);mctx.lineTo(p.x,p.y);mctx.stroke();
-  if(!mHasSig){mHasSig=true;document.getElementById('msighint').style.display='none';}}
+  if(!mHasSig){mHasSig=true;mHintEl.style.display='none';}}
 function mEnd(){mDrawing=false;}
 mcv.addEventListener('mousedown',mStart);mcv.addEventListener('mousemove',mMove);window.addEventListener('mouseup',mEnd);
 mcv.addEventListener('touchstart',mStart,{passive:false});mcv.addEventListener('touchmove',mMove,{passive:false});mcv.addEventListener('touchend',mEnd);
-document.getElementById('msig-clear').onclick=()=>{mctx.clearRect(0,0,mcv.width,mcv.height);mHasSig=false;document.getElementById('msighint').style.display='';};
+mHintEl.addEventListener('click',mArmSig);
+mHintEl.addEventListener('mousedown',mArmSig);
+mHintEl.addEventListener('touchstart',function(e){e.preventDefault();mArmSig();},{passive:false});
+document.getElementById('msig-clear').onclick=()=>{mctx.clearRect(0,0,mcv.width,mcv.height);mHasSig=false;mSigArmed=false;mHintEl.style.display='';mHintEl.textContent='Signez ici avec votre doigt';mHintEl.classList.remove('sig-ready');};
 
 document.getElementById('r-submit').onclick=async()=>{
   const rn=document.getElementById('r-nom').value.trim(),ri=document.getElementById('r-id').value.trim();
