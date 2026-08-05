@@ -774,16 +774,18 @@ async function sbInsertMany(entries){
 const LOGO_KEY='fordcaen_logos_v1';
 const loadLogos=()=>{try{return JSON.parse(localStorage.getItem(LOGO_KEY))||{}}catch(e){return{}}};
 const saveLogos=o=>localStorage.setItem(LOGO_KEY,JSON.stringify(o));
+const DEFAULT_LOGO1="https://upload.wikimedia.org/wikipedia/commons/3/3e/Ford_logo_flat.svg";
+const DEFAULT_LOGO2="https://www.groupe-legrand.fr/content/themes/legrand/assets/images/logo-groupe-legrand-white.svg";
 function applyLogos(){
   const l=loadLogos();
-  [['logo1-client',l.logo1],['logo1-dash',l.logo1]].forEach(([id,src])=>{
+  const logo1=l.logo1||DEFAULT_LOGO1;
+  const logo2=l.logo2||DEFAULT_LOGO2;
+  [['logo1-client',logo1],['logo1-dash',logo1]].forEach(([id,src])=>{
     const el=document.getElementById(id);if(!el)return;
-    el.innerHTML=src?`<img src="${src}" alt="Logo Ford">`:'<div class="oval">Ford</div>';
+    el.innerHTML=`<img src="${src}" alt="Logo Ford" onerror="this.parentNode.innerHTML='&lt;div class=&quot;oval&quot;&gt;Ford&lt;/div&gt;'">`;
   });
-  const t2c='<div class="brand"><div class="titles">Ford Caen<small>Groupe Legrand</small></div></div>';
-  const t2d='<div class="brand"><div class="titles">Ford Caen<small>Tableau de bord consentements</small></div></div>';
-  document.getElementById('logo2-client').innerHTML=l.logo2?`<img src="${l.logo2}" alt="Groupe Legrand">`:t2c;
-  document.getElementById('logo2-dash').innerHTML=l.logo2?`<img src="${l.logo2}" alt="Groupe Legrand">`:t2d;
+  document.getElementById('logo2-client').innerHTML=`<img src="${logo2}" alt="Groupe Legrand" onerror="this.parentNode.innerHTML='&lt;div class=&quot;brand&quot;&gt;&lt;div class=&quot;titles&quot;&gt;Ford Caen&lt;small&gt;Groupe Legrand&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;'">`;
+  document.getElementById('logo2-dash').innerHTML=`<img src="${logo2}" alt="Groupe Legrand" onerror="this.parentNode.innerHTML='&lt;div class=&quot;brand&quot;&gt;&lt;div class=&quot;titles&quot;&gt;Ford Caen&lt;small&gt;Tableau de bord&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;'">`;
   // aperçus dans le modal
   syncPreview(1,l.logo1);syncPreview(2,l.logo2);
 }
