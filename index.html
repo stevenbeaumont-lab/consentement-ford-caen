@@ -271,96 +271,27 @@
   .src-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:#EEF1F5;color:#3A4654}
   .dup{background:var(--warn-bg);border:1px solid #E8CE93;border-radius:10px;padding:12px 14px;font-size:13px;color:var(--warn);margin-bottom:14px}
 
-  /* ============ THÈME SOMBRE — FORMULAIRE CLIENT (automobile haut de gamme) ============ */
-  body.client-dark{background:#0A0F1A;background-image:radial-gradient(1200px 500px at 50% -8%,rgba(41,110,204,.28),transparent 60%),radial-gradient(900px 500px at 50% 110%,rgba(20,50,110,.22),transparent 60%);}
-  .client-dark #view-client .bar{background:transparent;box-shadow:none;border-radius:0;margin-left:-18px;margin-right:-18px;padding:20px 22px 4px}
+  /* ============ THÈME CLAIR FORD — FORMULAIRE CLIENT ============ */
+  body.client-dark{background:#EDF2F8;background-image:radial-gradient(1100px 460px at 50% -10%,rgba(0,58,126,.10),transparent 62%)}
+  .client-dark #view-client .bar{background:var(--ford-header);box-shadow:0 4px 16px rgba(0,20,50,.2);border-radius:0 0 16px 16px;margin-left:-18px;margin-right:-18px;padding:18px 22px}
   .client-dark #view-client .brand .titles{color:#fff}
-  .client-dark #view-client .brand small{color:#8FA6C6}
-  .client-dark #view-client .oval{background:#fff;color:#0A0F1A}
-  .client-dark #view-client .logo-sep{background:rgba(255,255,255,.18)}
-
-  .client-dark #view-client .tabs{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}
-  .client-dark #view-client .tab{color:#8FA6C6}
-  .client-dark #view-client .tab.on{background:rgba(255,255,255,.12);color:#fff;box-shadow:none}
-
-  .client-dark #view-client .hero h1{color:#fff;letter-spacing:-.5px}
-  .client-dark #view-client .hero p{color:#9DB2D0}
-  .client-dark #view-client .hero .badge{background:rgba(40,180,110,.14);color:#4CD892;border:1px solid rgba(76,216,146,.28)}
-  .client-dark #view-client .hero .badge svg{stroke:#4CD892}
-
-  .client-dark #view-client .card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);
-    border-radius:18px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 30px rgba(0,0,0,.28)}
-  .client-dark #view-client .sec-head h3{color:#EAF1FB}
-  .client-dark #view-client .sec-num{background:linear-gradient(135deg,#3B82F6,#1D4ED8);color:#fff;box-shadow:0 3px 10px rgba(37,99,235,.4)}
-  .client-dark #view-client label.f{color:#B7C7DE}
-
-  .client-dark #view-client input[type=text],
-  .client-dark #view-client input[type=tel],
-  .client-dark #view-client input[type=email],
-  .client-dark #view-client select{background:rgba(10,16,28,.6);border:1px solid rgba(255,255,255,.14);color:#F3F7FC}
-  .client-dark #view-client input::placeholder{color:#5E738F}
-  .client-dark #view-client input:focus,
-  .client-dark #view-client select:focus{border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,.25);background:rgba(10,16,28,.85)}
-  .client-dark #view-client select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237E96B5' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:16px}
-  .client-dark #view-client .field-icon>svg{stroke:#7E96B5}
-
-  .client-dark #view-client .toggle-pro{background:rgba(10,16,28,.5);border:1px solid rgba(255,255,255,.12)}
-  .client-dark #view-client .toggle-pro span{color:#D6E1F0}
-  .client-dark #view-client .toggle-pro span span{color:#7E96B5!important}
-  .client-dark #view-client .switch{background:#33445E}
-  .client-dark #view-client .toggle-pro.on .switch{background:#3B82F6}
-
-  .client-dark #view-client .choice{background:rgba(10,16,28,.5);border:2px solid rgba(255,255,255,.12)}
-  .client-dark #view-client .choice:hover{border-color:rgba(59,130,246,.6)}
-  .client-dark #view-client .choice .ct{color:#B7C7DE}
-  .client-dark #view-client .choice .ct b{color:#fff}
-  .client-dark #view-client .choice .ck{border-color:#44536B}
-  .client-dark #view-client .choice.on-accept{background:rgba(40,180,110,.12);border-color:#3AD187}
-  .client-dark #view-client .choice.on-accept .ck{background:#3AD187;border-color:#3AD187}
-  .client-dark #view-client .choice.on-refuse{background:rgba(214,60,60,.14);border-color:#E55959}
-  .client-dark #view-client .choice.on-refuse .ck{background:#E55959;border-color:#E55959}
-
-  .client-dark #view-client .chan-help{color:#7E96B5}
-  .client-dark #view-client .chan{background:rgba(10,16,28,.5);border:1.5px solid rgba(255,255,255,.12);color:#C3D2E6}
-  .client-dark #view-client .chan:hover{border-color:rgba(59,130,246,.6)}
-  .client-dark #view-client .chan.on{background:rgba(40,180,110,.14);border-color:#3AD187;color:#4CD892}
-
-  .client-dark #view-client canvas.sig{background:rgba(10,16,28,.55);border:1.5px dashed rgba(255,255,255,.22)}
-  .client-dark #view-client .sighint{color:#5E738F}
-  .client-dark #view-client .clear{color:#8FA6C6}
-
-  .client-dark #view-client .notice-toggle{color:#6FA8FF}
-  .client-dark #view-client .notice-toggle svg{stroke:#6FA8FF}
-  .client-dark #view-client .notice{background:rgba(10,16,28,.6);border:1px solid rgba(255,255,255,.1);color:#A9BAD2}
-  .client-dark #view-client .notice strong{color:#EAF1FB}
-
-  .client-dark #view-client .submit{background:linear-gradient(135deg,#3B82F6,#1D4ED8);box-shadow:0 8px 24px rgba(37,99,235,.4);color:#fff}
-  .client-dark #view-client .submit:hover{background:linear-gradient(135deg,#4C8FF7,#2563EB)}
-  .client-dark #view-client .submit:disabled{background:#2A3547;box-shadow:none;color:#63748C}
-  .client-dark #view-client .submit.danger{background:linear-gradient(135deg,#E55959,#B23B3B);box-shadow:0 8px 24px rgba(200,60,60,.35)}
-  .client-dark #view-client .submit-note{color:#6D82A0}
-  .client-dark #view-client .submit-note svg{stroke:#6D82A0}
-  .client-dark #view-client .pdot{background:rgba(255,255,255,.1);color:#7E96B5}
-  .client-dark #view-client .pdot.pdone{background:#3AD187;color:#0A0F1A}
-  .client-dark #view-client .pdot.active{background:linear-gradient(135deg,#3B82F6,#1D4ED8);color:#fff;box-shadow:0 0 0 4px rgba(59,130,246,.25)}
-  .client-dark #view-client .pdot.pdone svg{stroke:#0A0F1A}
-  .client-dark #view-client .pline{background:rgba(255,255,255,.14)}
-  .client-dark #view-client .pline.pdone{background:#3AD187}
-  .client-dark #view-client .plabels{color:#7E96B5}
-  .client-dark #view-client .plabels span.active{color:#6FA8FF}
-  .client-dark #view-client .field-icon.valid input{border-color:#3AD187!important}
-  .client-dark #view-client .field-icon .vcheck{background:#3AD187}
-  .client-dark #view-client .field-icon .vcheck svg{stroke:#0A0F1A}
-
-  .client-dark #view-client .done h2{color:#fff}
-  .client-dark #view-client .done p{color:#9DB2D0}
-  .client-dark #view-client .stamp{background:rgba(10,16,28,.6);border:1px solid rgba(255,255,255,.12);color:#9DB2D0}
-  .client-dark #view-client .stamp b{color:#EAF1FB}
-  .client-dark #view-client #review-zone{border-top-color:rgba(255,255,255,.12)!important}
-  .client-dark #view-client .checkc{background:rgba(40,180,110,.16)}
-  .client-dark #view-client .checkc svg{stroke:#4CD892}
-  .client-dark #view-client .checkc.red{background:rgba(214,60,60,.18)}
-  .client-dark #view-client .checkc.red svg{stroke:#E55959}
+  .client-dark #view-client .brand small{color:#AEC4E0}
+  .client-dark #view-client .oval{background:#fff;color:var(--blue)}
+  .client-dark #view-client .logo-sep{background:rgba(255,255,255,.28)}
+  .client-dark #view-client .tabs{background:#DCE5F0;border:1px solid #CBD8E8}
+  .client-dark #view-client .tab{color:#5A6B80}
+  .client-dark #view-client .tab.on{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .client-dark #view-client .hero h1{color:var(--blue);letter-spacing:-.4px}
+  .client-dark #view-client .hero p{color:#5A6B80}
+  .client-dark #view-client .hero .badge{background:#E4F3EA;color:var(--ok);border:1px solid rgba(29,122,76,.25)}
+  .client-dark #view-client .hero .badge svg{stroke:var(--ok)}
+  .client-dark #view-client .pdot.active{background:linear-gradient(135deg,#1B6EF3,#003E7E)}
+  .client-dark #view-client .card{background:#fff;border:1px solid #E1E8F1;border-radius:18px;box-shadow:0 6px 22px rgba(0,39,77,.07)}
+  .client-dark #view-client .sec-num{background:linear-gradient(135deg,#1B6EF3,#003E7E);color:#fff;box-shadow:0 3px 10px rgba(0,62,126,.3)}
+  .client-dark #view-client .submit{background:linear-gradient(135deg,#003E7E,#00274D);box-shadow:0 8px 22px rgba(0,39,77,.28);color:#fff}
+  .client-dark #view-client .submit:hover{background:linear-gradient(135deg,#004a94,#003E7E)}
+  .client-dark #view-client .submit:disabled{background:#C7CFDA;box-shadow:none;color:#8A97A8}
+  .client-dark #view-client .submit.danger{background:linear-gradient(135deg,#C0392B,#8a1f1f)}
 
   @media(max-width:640px){
     .wrap.dash{padding:0 12px 60px}
