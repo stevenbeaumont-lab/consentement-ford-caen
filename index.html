@@ -185,6 +185,12 @@
     font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
   .alert-expiring .ae-btn:hover{background:#E0951A}
   .kpi.k-new .ic{background:linear-gradient(135deg,#1B6EF3,#003E7E)}
+  .alert-purge{background:#FDECEC;border-color:#F3C9C9}
+  .alert-purge .ae-ic{background:#C0392B}
+  .alert-purge .ae-txt{color:#8A2020}
+  .alert-purge .ae-txt b{color:#6A1515}
+  .alert-purge .ae-btn{background:#C0392B}
+  .alert-purge .ae-btn:hover{background:#A62828}
   /* Bloc scans & conversion */
   .scan-kpis{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;margin:6px 0 14px}
   .scan-kpi{text-align:center;min-width:110px}
@@ -682,6 +688,12 @@
     <div class="ae-ic"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
     <div class="ae-txt" id="alert-expiring-txt"></div>
     <button class="ae-btn" id="alert-expiring-btn">Voir</button>
+  </div>
+
+  <div class="alert-expiring alert-purge hide" id="alert-purge">
+    <div class="ae-ic"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+    <div class="ae-txt" id="alert-purge-txt"></div>
+    <button class="ae-btn" id="alert-purge-btn">Purger</button>
   </div>
 
   <div class="kpi-row">
@@ -1613,6 +1625,17 @@ function renderDash(){
       al.classList.add('hide');
     }
   }
+  // Alerte RGPD : consentements expirés à purger (> 3 ans)
+  const expiredList=d.filter(x=>statusOf(x).label==='Expiré');
+  const ap=document.getElementById('alert-purge');
+  if(ap){
+    if(expiredList.length>0){
+      ap.classList.remove('hide');
+      document.getElementById('alert-purge-txt').innerHTML='<b>'+expiredList.length+' consentement'+(expiredList.length>1?'s ont':' a')+' dépassé 3 ans</b> et devrai'+(expiredList.length>1?'ent':'t')+' être supprimé'+(expiredList.length>1?'s':'')+' (obligation RGPD de ne pas conserver indéfiniment).';
+    }else{
+      ap.classList.add('hide');
+    }
+  }
   try{drawCharts(d);}catch(e){}
   try{renderScans(d);}catch(e){}
   applyAndDraw();
@@ -1823,6 +1846,20 @@ if(aeBtn)aeBtn.onclick=()=>{
   if(target)target.classList.add('on');
   filterState.statut='À renouveler';applyAndDraw();
   document.querySelector('.exportbar').scrollIntoView({behavior:'smooth',block:'start'});
+};
+const apBtn=document.getElementById('alert-purge-btn');
+if(apBtn)apBtn.onclick=async()=>{
+  const expired=load().filter(x=>statusOf(x).label==='Expiré');
+  if(!expired.length)return;
+  if(apBtn.dataset.armed!=='1'){
+    apBtn.dataset.armed='1';apBtn.textContent='Confirmer la suppression ('+expired.length+') ?';
+    setTimeout(()=>{if(apBtn.dataset.armed==='1'){apBtn.dataset.armed='0';apBtn.textContent='Purger';}},4000);
+    return;
+  }
+  apBtn.dataset.armed='0';apBtn.textContent='Suppression…';apBtn.disabled=true;
+  for(const x of expired){ await sbDelete(x.id); }
+  apBtn.disabled=false;apBtn.textContent='Purger';
+  renderDash();
 };
 document.querySelectorAll('#filters .chip').forEach(c=>c.onclick=()=>{
   const f=c.dataset.f;
