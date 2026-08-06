@@ -171,6 +171,16 @@
   .row-del:hover{color:var(--danger);background:var(--danger-bg)}
   .row-del.armed{color:#fff;background:var(--danger);font-size:12px;font-weight:700;padding:5px 10px;white-space:nowrap}
   .count-line{font-size:13px;color:var(--muted);margin-bottom:10px}
+  .alert-expiring{display:flex;align-items:center;gap:13px;background:#FFF6E6;border:1px solid #F0D48A;
+    border-radius:14px;padding:14px 18px;margin-bottom:16px}
+  .alert-expiring .ae-ic{width:34px;height:34px;flex-shrink:0;background:#F5A623;border-radius:9px;display:flex;align-items:center;justify-content:center}
+  .alert-expiring .ae-ic svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2}
+  .alert-expiring .ae-txt{flex:1;font-size:14px;color:#7A5A12;line-height:1.4}
+  .alert-expiring .ae-txt b{color:#5A4210}
+  .alert-expiring .ae-btn{background:#F5A623;color:#fff;border:none;border-radius:9px;padding:9px 16px;
+    font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+  .alert-expiring .ae-btn:hover{background:#E0951A}
+  .kpi.k-new .ic{background:linear-gradient(135deg,#1B6EF3,#003E7E)}
   /* Bloc scans & conversion */
   .scan-kpis{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;margin:6px 0 14px}
   .scan-kpi{text-align:center;min-width:110px}
@@ -664,11 +674,17 @@
     </div>
   </div>
 
+  <div class="alert-expiring hide" id="alert-expiring">
+    <div class="ae-ic"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+    <div class="ae-txt" id="alert-expiring-txt"></div>
+    <button class="ae-btn" id="alert-expiring-btn">Voir</button>
+  </div>
+
   <div class="kpi-row">
     <div class="kpi k-ok"><div class="ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div><div class="n" id="s-ok">0</div><div class="l">Valides (appelables)</div></div>
     <div class="kpi k-renew"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div><div class="n" id="s-renew">0</div><div class="l">À relancer (≥35 mois)</div></div>
     <div class="kpi k-exp"><div class="ic"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div><div class="n" id="s-exp">0</div><div class="l">Expirés / refusés / retirés</div></div>
-    <div class="kpi k-tot"><div class="ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="n" id="s-tot">0</div><div class="l">Total contacts</div></div>
+    <div class="kpi k-new"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div><div class="n" id="s-new">0</div><div class="l">Nouveaux (7 jours)</div></div>
   </div>
 
   <div class="panel scan-panel">
@@ -740,6 +756,13 @@
       <button class="chip on" data-f="type" data-v="all">Tous</button>
       <button class="chip" data-f="type" data-v="part">Particuliers</button>
       <button class="chip" data-f="type" data-v="pro">Pros</button>
+      <span class="fsep"></span>
+      <span class="fgroup-label">Période</span>
+      <button class="chip on" data-f="periode" data-v="all">Tout</button>
+      <button class="chip" data-f="periode" data-v="7">7 jours</button>
+      <button class="chip" data-f="periode" data-v="30">30 jours</button>
+      <button class="chip" data-f="periode" data-v="mois">Ce mois</button>
+      <button class="chip" data-f="periode" data-v="annee">Cette année</button>
     </div>
     <div class="count-line" id="count-line"></div>
     <div class="contacts-scroll" style="overflow-x:auto"><table class="contacts-table">
@@ -1562,18 +1585,30 @@ document.getElementById('import-file').onchange=e=>{
 
 /* ---------- Dashboard premium ---------- */
 let charts={status:null,source:null,time:null};
-const filterState={statut:'all',source:'all',type:'all'};
+const filterState={statut:'all',source:'all',type:'all',periode:'all'};
 let sortState={key:'ts',dir:-1};
 
 function renderDash(){
   try{buildQR();}catch(e){}
   const d=load();
-  let ok=0,rn=0,ex=0;
-  d.forEach(x=>{const s=statusOf(x);if(s.k==='g')ok++;else if(s.k==='w')rn++;else ex++;});
+  let ok=0,rn=0,ex=0,nw=0;
+  const now=new Date();
+  d.forEach(x=>{const s=statusOf(x);if(s.k==='g')ok++;else if(s.k==='w')rn++;else ex++;
+    if((now-new Date(x.ts))/86400000<=7)nw++;});
   document.getElementById('s-ok').textContent=ok;
   document.getElementById('s-renew').textContent=rn;
   document.getElementById('s-exp').textContent=ex;
-  document.getElementById('s-tot').textContent=d.length;
+  const snew=document.getElementById('s-new');if(snew)snew.textContent=nw;
+  // Alerte : consentements à relancer (bientôt expirés)
+  const al=document.getElementById('alert-expiring');
+  if(al){
+    if(rn>0){
+      al.classList.remove('hide');
+      document.getElementById('alert-expiring-txt').innerHTML='<b>'+rn+' consentement'+(rn>1?'s':'')+'</b> arrive'+(rn>1?'nt':'')+' bientôt à expiration (3 ans). Pensez à relancer '+(rn>1?'ces clients':'ce client')+' avant de perdre le droit de '+(rn>1?'les':'le')+' contacter.';
+    }else{
+      al.classList.add('hide');
+    }
+  }
   try{drawCharts(d);}catch(e){}
   try{renderScans(d);}catch(e){}
   applyAndDraw();
@@ -1642,6 +1677,17 @@ function passFilters(x){
   if(filterState.source!=='all'&&x.source!==filterState.source)return false;
   if(filterState.type==='pro'&&!x.pro)return false;
   if(filterState.type==='part'&&x.pro)return false;
+  if(filterState.periode!=='all'){
+    const t=new Date(x.ts), now=new Date();
+    if(filterState.periode==='7'||filterState.periode==='30'){
+      const days=(now-t)/86400000;
+      if(days>parseInt(filterState.periode))return false;
+    }else if(filterState.periode==='mois'){
+      if(t.getMonth()!==now.getMonth()||t.getFullYear()!==now.getFullYear())return false;
+    }else if(filterState.periode==='annee'){
+      if(t.getFullYear()!==now.getFullYear())return false;
+    }
+  }
   return true;
 }
 
@@ -1766,6 +1812,14 @@ function printConsent(x){
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
 document.getElementById('search').addEventListener('input',applyAndDraw);
+const aeBtn=document.getElementById('alert-expiring-btn');
+if(aeBtn)aeBtn.onclick=()=>{
+  document.querySelectorAll('#filters .chip[data-f="statut"]').forEach(x=>x.classList.remove('on'));
+  const target=document.querySelector('#filters .chip[data-f="statut"][data-v="À renouveler"]');
+  if(target)target.classList.add('on');
+  filterState.statut='À renouveler';applyAndDraw();
+  document.querySelector('.exportbar').scrollIntoView({behavior:'smooth',block:'start'});
+};
 document.querySelectorAll('#filters .chip').forEach(c=>c.onclick=()=>{
   const f=c.dataset.f;
   document.querySelectorAll(`#filters .chip[data-f="${f}"]`).forEach(x=>x.classList.remove('on'));
