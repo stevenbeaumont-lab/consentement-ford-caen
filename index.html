@@ -165,6 +165,9 @@
   th.sortable:hover{color:var(--accent)}
   th .arr{font-size:9px;opacity:.5}
   .row-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:4px;border-radius:6px}
+  .row-pdf{background:#EEF3FB;border:1px solid #D2E0F2;color:#1B4E8E;cursor:pointer;font-size:11px;font-weight:700;
+    padding:5px 9px;border-radius:6px;margin-right:8px;letter-spacing:.3px}
+  .row-pdf:hover{background:#1B6EF3;color:#fff;border-color:#1B6EF3}
   .row-del:hover{color:var(--danger);background:var(--danger-bg)}
   .row-del.armed{color:#fff;background:var(--danger);font-size:12px;font-weight:700;padding:5px 10px;white-space:nowrap}
   .count-line{font-size:13px;color:var(--muted);margin-bottom:10px}
@@ -263,6 +266,10 @@
   .field-icon input{padding-left:42px}
   .submit-note{text-align:center;font-size:12px;color:var(--muted);margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px}
   .submit-note svg{width:14px;height:14px;stroke:var(--muted);fill:none;stroke-width:1.8}
+  .gate-already{display:flex;gap:12px;align-items:flex-start;background:var(--warn-bg);border:1px solid #E8CE93;
+    border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:14px;color:#6B4E12;line-height:1.45}
+  .gate-already svg{width:22px;height:22px;stroke:var(--warn);fill:none;stroke-width:2;flex-shrink:0}
+  .gate-already b{color:#5A4210}
   /* Barre de progression */
   .progress-wrap{padding:6px 0 14px;margin-bottom:6px}
   .progress-steps{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:10px}
@@ -357,8 +364,37 @@
     <button class="tab" data-mode="revoke">Modifier mon accord</button>
   </div>
 
+  <!-- --- Étape 0 : email d'entrée (détection doublon) --- -->
+  <div id="email-gate">
+    <div class="hero">
+      <div class="badge"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Valable 3 ans · Modifiable à tout moment</div>
+      <h1>Restons en contact</h1>
+      <p>Commençons par votre email — nous vérifions si vous êtes déjà connu de nos services.</p>
+    </div>
+    <div class="card">
+      <div class="sec" style="margin-bottom:0">
+        <div class="sec-head"><span class="sec-num">@</span><h3>Votre email</h3></div>
+        <div class="field" style="margin-bottom:14px">
+          <label class="f">Adresse email <span class="req">*</span></label>
+          <div class="field-icon" id="gate-mail-wrap">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="m22 6-10 7L2 6"/></svg>
+            <input type="email" id="gate-mail" placeholder="jean.dupont@email.fr" autocomplete="email">
+            <div class="vcheck"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+          </div>
+          <div class="field-err" id="gate-mail-err"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Adresse email invalide</div>
+        </div>
+        <div id="gate-already" class="gate-already hide">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div><b>Vous êtes déjà enregistré chez nous.</b><br>Vous pouvez modifier vos préférences ou retirer votre accord.</div>
+        </div>
+        <button class="submit" id="gate-btn">Continuer</button>
+        <button class="submit" id="gate-modify-btn" style="margin-top:10px;display:none;background:linear-gradient(135deg,#1B6EF3,#003E7E)">Modifier mon accord</button>
+      </div>
+    </div>
+  </div>
+
   <!-- --- Donner accord --- -->
-  <div id="give-block">
+  <div id="give-block" class="hide">
     <div class="hero">
       <div class="badge"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Valable 3 ans · Modifiable à tout moment</div>
       <h1>Restons en contact</h1>
@@ -804,6 +840,16 @@ async function sbInsertMany(entries){
   entries.forEach(e=>CACHE.unshift(e));
 }
 
+/* ---------- Vérification email existant (anti-doublon) ---------- */
+async function sbEmailExists(email){
+  if(!sb) return false;
+  try{
+    const {data,error}=await sb.rpc('email_existe',{p_email:email});
+    if(error){console.warn('email_existe',error);return false;}
+    return !!data;
+  }catch(e){return false;}
+}
+
 /* ---------- Scans de QR codes ---------- */
 let SCANS=[]; // rempli au chargement du tableau de bord
 async function sbInsertScan(source){
@@ -959,6 +1005,7 @@ document.getElementById('signout-btn')&&(document.getElementById('signout-btn').
 /* ---------- Bascule Donner / Modifier ---------- */
 function switchMode(mode){
   const give=mode==='give';
+  const gate=document.getElementById('email-gate');if(gate)gate.classList.add('hide');
   document.getElementById('give-block').classList.toggle('hide',!give);
   document.getElementById('revoke-block').classList.toggle('hide',give);
   document.getElementById('done-block').classList.add('hide');
@@ -976,6 +1023,51 @@ document.getElementById('header-mode-btn').onclick=function(){switchMode(this.da
 document.querySelectorAll('#client-tabs .tab').forEach(t=>{
   t.onclick=()=>switchMode(t.dataset.mode);
 });
+
+/* ---------- Écran email d'entrée (anti-doublon) ---------- */
+const gateMail=document.getElementById('gate-mail'),gateWrap=document.getElementById('gate-mail-wrap'),
+  gateErr=document.getElementById('gate-mail-err'),gateBtn=document.getElementById('gate-btn'),
+  gateAlready=document.getElementById('gate-already'),gateModifyBtn=document.getElementById('gate-modify-btn');
+function gateValidate(){
+  const v=gateMail.value.trim();
+  const ok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  gateWrap.classList.toggle('valid',ok&&!!v);
+  gateErr.classList.toggle('show',!!v&&!ok);
+  return ok;
+}
+gateMail.addEventListener('input',()=>{
+  gateValidate();
+  // si l'utilisateur re-modifie l'email, on ré-affiche le bouton Continuer
+  gateAlready.classList.add('hide');
+  gateModifyBtn.style.display='none';
+  gateBtn.style.display='';
+});
+gateBtn.onclick=async()=>{
+  if(!gateValidate()){gateErr.classList.add('show');return;}
+  const email=gateMail.value.trim();
+  gateBtn.disabled=true;gateBtn.textContent='Vérification…';
+  const exists=await sbEmailExists(email);
+  gateBtn.disabled=false;gateBtn.textContent='Continuer';
+  if(exists){
+    gateAlready.classList.remove('hide');
+    gateBtn.style.display='none';
+    gateModifyBtn.style.display='';
+  }else{
+    // email libre : on passe au formulaire, email pré-rempli
+    document.getElementById('c-mail').value=email;
+    document.getElementById('email-gate').classList.add('hide');
+    document.getElementById('give-block').classList.remove('hide');
+    if(typeof check==='function')check();
+    setTimeout(fit,30);
+    window.scrollTo(0,0);
+  }
+};
+gateModifyBtn.onclick=()=>{
+  // basculer vers l'onglet Modifier avec l'email pré-rempli
+  document.getElementById('email-gate').classList.add('hide');
+  const rid=document.getElementById('r-id');if(rid)rid.value=gateMail.value.trim();
+  switchMode('revoke');
+};
 
 /* ---------- Signature ---------- */
 const cv=document.getElementById('sig'),ctx=cv.getContext('2d');
@@ -1463,7 +1555,7 @@ function drawRows(f,total){
       <td data-label="Source"><span class="src-tag">${esc(x.source||'—')}</span></td>
       <td data-label="Recueilli le" style="font-size:13px;color:var(--muted)">${x.tsFr}</td>
       <td class="sigcell cell-sig" data-label="Signature">${x.signature?`<img src="${x.signature}" alt="sig">`:'<span style="color:var(--muted);font-size:12px">importé</span>'}</td>
-      <td class="cell-del"><button class="row-del" data-id="${x.id||''}" data-ts="${x.ts}" title="Supprimer">✕</button></td>
+      <td class="cell-del"><button class="row-pdf" data-ts="${x.ts}" title="Télécharger le PDF">PDF</button><button class="row-del" data-id="${x.id||''}" data-ts="${x.ts}" title="Supprimer">✕</button></td>
     </tr>`;}).join('');
   document.querySelectorAll('.row-del').forEach(b=>{
     b.onclick=()=>{
@@ -1475,6 +1567,83 @@ function drawRows(f,total){
       setTimeout(()=>{if(b.dataset.armed==='1'){b.dataset.armed='0';b.textContent='✕';b.classList.remove('armed');}},3500);
     };
   });
+  document.querySelectorAll('.row-pdf').forEach(b=>{
+    b.onclick=()=>{const x=load().find(c=>c.ts===b.dataset.ts);if(x)printConsent(x);};
+  });
+}
+
+/* ---------- PDF d'un consentement signé ---------- */
+function printConsent(x){
+  const l=loadLogos();
+  const logo1=l.logo1||DEFAULT_LOGO1, logo2=l.logo2||DEFAULT_LOGO2;
+  const statut = x.refused ? 'REFUS de prospection commerciale'
+               : (x.revoked ? 'Consentement RETIRÉ' : 'CONSENTEMENT à la prospection commerciale');
+  const statutColor = x.refused||x.revoked ? '#A62828' : '#1D7A4C';
+  const canaux = (x.canaux&&x.canaux.length)?x.canaux.join(', '):'—';
+  const srcLabel={'CRM':'CRM - Commerces','APV':'APV (après-vente)','Evenement Ext':'Événement extérieur'}[x.source]||x.source||'—';
+  const row=(lab,val)=>`<tr><td class="lab">${lab}</td><td class="val">${esc(val||'—')}</td></tr>`;
+  const w=window.open('','_blank','width=800,height=1100');
+  if(!w){alert("Autorisez les fenêtres pop-up pour générer le PDF.");return;}
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Consentement — ${esc(x.nom)}</title>
+  <style>
+    @page{size:A4 portrait;margin:0}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A2230}
+    .page{width:210mm;min-height:297mm;padding:20mm 22mm;position:relative}
+    .topbar{background:#00274D;border-radius:14px;padding:16px 22px;display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:26px}
+    .topbar img{height:38px;max-width:170px;object-fit:contain}
+    .topbar .sep{width:1px;height:32px;background:rgba(255,255,255,.3)}
+    .topbar .txt{color:#fff;font-weight:700;font-size:17px;line-height:1.1}
+    .topbar .txt small{display:block;font-weight:500;font-size:12px;color:#AEC4E0}
+    h1{font-size:22px;color:#00274D;margin-bottom:4px}
+    .subtitle{color:#5A6B80;font-size:13px;margin-bottom:22px}
+    .status{display:inline-block;font-size:14px;font-weight:700;color:#fff;background:${statutColor};
+      padding:8px 16px;border-radius:8px;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse;margin-bottom:24px}
+    td{padding:10px 12px;border-bottom:1px solid #E4E9F0;font-size:14px;vertical-align:top}
+    td.lab{color:#5A6B80;font-weight:600;width:42%}
+    td.val{color:#1A2230;font-weight:500}
+    .sigblock{margin-top:10px;border:1px solid #E4E9F0;border-radius:12px;padding:16px 18px}
+    .sigblock .t{font-size:12px;color:#5A6B80;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+    .sigblock img{max-height:120px;max-width:100%}
+    .sigblock .none{color:#9AA6B5;font-size:13px;font-style:italic}
+    .foot{position:absolute;bottom:16mm;left:22mm;right:22mm;font-size:11px;color:#8A97A8;
+      border-top:1px solid #E4E9F0;padding-top:12px;line-height:1.5}
+    .ref{font-size:11px;color:#8A97A8;margin-top:2px}
+  </style></head><body>
+  <div class="page">
+    <div class="topbar">
+      <img src="${logo1}" alt="Ford" onerror="this.style.display='none'">
+      <span class="sep"></span>
+      <img src="${logo2}" alt="Groupe Legrand" onerror="this.outerHTML='&lt;span class=&quot;txt&quot;&gt;Ford Caen&lt;small&gt;Groupe Legrand&lt;/small&gt;&lt;/span&gt;'">
+    </div>
+    <h1>Justificatif de consentement</h1>
+    <div class="subtitle">Preuve de recueil — Ford Caen, Groupe Legrand</div>
+    <div class="status">${statut}</div>
+    <table>
+      ${row('Nom et prénom', x.nom)}
+      ${x.pro?row('Type de client','Professionnel'+(x.societe?' — '+x.societe:'')):row('Type de client','Particulier')}
+      ${row('Téléphone', x.tel)}
+      ${row('Email', x.mail)}
+      ${x.vehicule?row('Véhicule concerné', x.vehicule):''}
+      ${row('Moyens de contact acceptés', canaux)}
+      ${row('Finalité', x.finalite||'Prospection commerciale')}
+      ${row('Source du recueil', srcLabel)}
+      ${row('Date et heure du recueil', x.tsFr)}
+    </table>
+    <div class="sigblock">
+      <div class="t">Signature du client</div>
+      ${x.signature?`<img src="${x.signature}" alt="signature">`:'<div class="none">Aucune signature (contact importé)</div>'}
+    </div>
+    <div class="foot">
+      Document généré le ${new Date().toLocaleString('fr-FR')}.<br>
+      Conformément au RGPD, le client dispose d'un droit d'accès, de rectification, d'opposition, de portabilité, de limitation et d'effacement, et peut retirer son consentement à tout moment. Contact : dpeurope@ford.com.
+      <div class="ref">Réf. ${(x.id||x.ts||'').toString().slice(0,18)}</div>
+    </div>
+  </div>
+  <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>
+  </body></html>`);
+  w.document.close();
 }
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
