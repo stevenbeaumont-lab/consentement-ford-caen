@@ -954,6 +954,22 @@ async function sbEmailExists(email){
     return !!data;
   }catch(e){return false;}
 }
+async function sbGetConsentement(email){
+  if(!sb){
+    // mode démo : chercher dans le cache local
+    const idn=norm(email);
+    return load().find(x=>norm(x.mail)===idn)||null;
+  }
+  try{
+    const {data,error}=await sb.rpc('get_consentement',{p_email:email});
+    if(error){console.warn('get_consentement',error);return null;}
+    const row=Array.isArray(data)?data[0]:data;
+    if(!row)return null;
+    return {prenom:row.prenom||'',nomFamille:row.nom_famille||'',nom:row.nom||'',tel:row.tel||'',mail:row.mail||'',
+      pro:!!row.pro,societe:row.societe||'',source:row.source||'',vehicule:row.vehicule||'',
+      refused:!!row.refused,revoked:!!row.revoked,canaux:row.canaux||[]};
+  }catch(e){return null;}
+}
 
 /* ---------- Scans de QR codes ---------- */
 let SCANS=[]; // rempli au chargement du tableau de bord
@@ -1184,11 +1200,37 @@ gateBtn.onclick=async()=>{
     window.scrollTo(0,0);
   }
 };
-gateModifyBtn.onclick=()=>{
-  // basculer vers l'onglet Modifier avec l'email pré-rempli
+gateModifyBtn.onclick=async()=>{
+  const email=gateMail.value.trim();
+  gateModifyBtn.disabled=true;gateModifyBtn.textContent='Chargement…';
+  const fiche=await sbGetConsentement(email);
+  gateModifyBtn.disabled=false;gateModifyBtn.textContent='Modifier mon accord';
   document.getElementById('email-gate').classList.add('hide');
-  const rMail=document.getElementById('r-mail');if(rMail)rMail.value=gateMail.value.trim();
+  // pré-remplir tous les champs à partir de la fiche existante
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+  set('r-mail',email);
+  if(fiche){
+    set('r-prenom',fiche.prenom);
+    set('r-nomfam',fiche.nomFamille);
+    set('r-tel',fiche.tel);
+    set('r-mail',fiche.mail||email);
+    set('r-source',fiche.source);
+    set('r-vehicle',fiche.vehicule);
+    // professionnel
+    if(rPro){rPro.checked=!!fiche.pro;rProBox.classList.toggle('on',!!fiche.pro);
+      rCompanyField.style.display=fiche.pro?'block':'none';set('r-company',fiche.societe);}
+    // canaux : cocher ceux déjà choisis
+    if(fiche.canaux&&fiche.canaux.length&&!fiche.refused){
+      mAccept.checked=true;mRefuse.checked=false;
+      mChanEls.forEach(c=>{
+        const on=fiche.canaux.includes(c.dataset.ch);
+        c.querySelector('input').checked=on;c.classList.toggle('on',on);
+      });
+      if(typeof mOnChoice==='function')mOnChoice();
+    }
+  }
   switchMode('revoke');
+  if(typeof mUpdateProgress==='function')mUpdateProgress();
 };
 
 /* ---------- Signature ---------- */
