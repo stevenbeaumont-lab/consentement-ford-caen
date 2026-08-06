@@ -1227,7 +1227,81 @@ function buildQR(){
   new QRCode(b,{text:url,width:180,height:180,colorDark:'#00274D',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
 }
 document.getElementById('d-source').addEventListener('change',buildQR);
-document.getElementById('print-qr').onclick=()=>window.print();
+
+function printPoster(){
+  const src=document.getElementById('d-source').value;
+  const url=location.origin+location.pathname+'?src='+encodeURIComponent(src)+'#form';
+  // générer un grand QR dans un conteneur temporaire
+  const tmp=document.createElement('div');
+  new QRCode(tmp,{text:url,width:520,height:520,colorDark:'#00274D',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  const qrImg=tmp.querySelector('img'), qrCanvas=tmp.querySelector('canvas');
+  const qrSrc = qrImg ? qrImg.src : (qrCanvas ? qrCanvas.toDataURL() : '');
+  const l=loadLogos();
+  const logo1=l.logo1||DEFAULT_LOGO1;
+  const logo2=l.logo2||DEFAULT_LOGO2;
+  const w=window.open('','_blank','width=800,height=1100');
+  if(!w){alert("Autorisez les fenêtres pop-up pour imprimer l'affiche.");return;}
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Affiche QR — Ford Caen</title>
+  <style>
+    @page{size:A4 portrait;margin:0}
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+      display:flex;align-items:center;justify-content:center;background:#fff}
+    .poster{width:210mm;height:297mm;padding:18mm 20mm;display:flex;flex-direction:column;align-items:center;
+      text-align:center;position:relative}
+    .topbar{width:100%;background:#00274D;border-radius:16px;padding:18px 26px;display:flex;align-items:center;
+      justify-content:center;gap:22px;margin-bottom:26px}
+    .topbar img{height:44px;max-width:190px;object-fit:contain}
+    .topbar .sep{width:1px;height:38px;background:rgba(255,255,255,.3)}
+    .topbar .txt{color:#fff;text-align:left;font-weight:700;font-size:20px;line-height:1.1}
+    .topbar .txt small{display:block;font-weight:500;font-size:13px;color:#AEC4E0;margin-top:2px}
+    .badge{display:inline-block;background:#E4F3EA;color:#1D7A4C;font-weight:700;font-size:15px;
+      padding:8px 20px;border-radius:30px;margin-bottom:18px;letter-spacing:.3px}
+    h1{font-size:38px;color:#00274D;line-height:1.15;margin-bottom:12px;letter-spacing:-.5px}
+    h1 span{color:#1B6EF3}
+    .lead{font-size:18px;color:#4A5568;max-width:150mm;margin-bottom:26px;line-height:1.5}
+    .qrbox{background:#fff;border:3px solid #E1E8F1;border-radius:22px;padding:20px;box-shadow:0 10px 34px rgba(0,39,77,.12)}
+    .qrbox img{display:block;width:110mm;height:110mm}
+    .scan-cta{display:flex;align-items:center;gap:12px;font-size:21px;color:#00274D;font-weight:700;margin:24px 0 8px}
+    .scan-cta svg{width:28px;height:28px;stroke:#00274D;fill:none;stroke-width:2}
+    .steps{display:flex;gap:26px;justify-content:center;margin-top:4px;flex-wrap:wrap}
+    .step{display:flex;align-items:center;gap:8px;font-size:15px;color:#4A5568}
+    .step b{background:#1B6EF3;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;
+      align-items:center;justify-content:center;font-size:13px}
+    .foot{position:absolute;bottom:12mm;left:0;right:0;font-size:12.5px;color:#8A97A8;
+      display:flex;align-items:center;justify-content:center;gap:7px;padding:0 18mm}
+    .foot svg{width:15px;height:15px;stroke:#8A97A8;fill:none;stroke-width:1.8}
+  </style></head><body>
+  <div class="poster">
+    <div class="topbar">
+      <img src="${logo1}" alt="Ford" onerror="this.style.display='none'">
+      <span class="sep"></span>
+      <img src="${logo2}" alt="Groupe Legrand" onerror="this.outerHTML='&lt;span class=&quot;txt&quot;&gt;Ford Caen&lt;small&gt;Groupe Legrand&lt;/small&gt;&lt;/span&gt;'">
+    </div>
+    <div class="badge">✓ Restez informé de nos offres</div>
+    <h1>Recevez nos <span>offres exclusives</span><br>et nouveautés</h1>
+    <p class="lead">Scannez ce QR code avec votre téléphone pour nous laisser vos coordonnées. Vous gardez le contrôle : accord modifiable à tout moment.</p>
+    <div class="qrbox"><img src="${qrSrc}" alt="QR code"></div>
+    <div class="scan-cta">
+      <svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+      Scannez avec l'appareil photo de votre téléphone
+    </div>
+    <div class="steps">
+      <div class="step"><b>1</b> Ouvrez l'appareil photo</div>
+      <div class="step"><b>2</b> Visez le QR code</div>
+      <div class="step"><b>3</b> Touchez le lien qui apparaît</div>
+    </div>
+    <div class="foot">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Vos données sont protégées et traitées conformément au RGPD — Ford Caen, Groupe Legrand
+    </div>
+  </div>
+  <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>
+  </body></html>`);
+  w.document.close();
+}
+document.getElementById('print-qr').onclick=printPoster;
 window._src=new URLSearchParams(location.search).get('src')||'CRM';
 (function(){const s=window._src;if(s==='CRM'||s==='APV'||s==='Evenement Ext')csource.value=s;})();
 // Enregistrer un scan si la page est ouverte via un QR (paramètre ?src= présent)
