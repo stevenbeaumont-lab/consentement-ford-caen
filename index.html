@@ -168,6 +168,19 @@
   .row-del:hover{color:var(--danger);background:var(--danger-bg)}
   .row-del.armed{color:#fff;background:var(--danger);font-size:12px;font-weight:700;padding:5px 10px;white-space:nowrap}
   .count-line{font-size:13px;color:var(--muted);margin-bottom:10px}
+  /* Bloc scans & conversion */
+  .scan-kpis{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;margin:6px 0 14px}
+  .scan-kpi{text-align:center;min-width:110px}
+  .scan-kpi .sk-n{font-size:32px;font-weight:800;color:var(--blue);line-height:1}
+  .scan-kpi .sk-l{font-size:12.5px;color:var(--muted);margin-top:5px;font-weight:600}
+  .scan-kpi.conv .sk-n{color:var(--ok)}
+  .scan-arrow{font-size:24px;color:#B7C2D2;font-weight:700}
+  .scan-bysource{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+  .scan-src{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:center}
+  .scan-src .ss-name{font-size:12px;font-weight:700;color:#3A4654;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+  .scan-src .ss-line{font-size:13px;color:var(--muted)}
+  .scan-src .ss-rate{font-size:20px;font-weight:800;color:var(--blue);margin-top:4px}
+  @media(max-width:600px){.scan-bysource{grid-template-columns:1fr}.scan-arrow{display:none}}
   /* --- Paramètres (modal) --- */
   .modal-bg{position:fixed;inset:0;background:rgba(0,20,45,.55);display:flex;align-items:center;
     justify-content:center;z-index:50;padding:20px}
@@ -573,6 +586,19 @@
     <div class="kpi k-tot"><div class="ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="n" id="s-tot">0</div><div class="l">Total contacts</div></div>
   </div>
 
+  <div class="panel scan-panel">
+    <h3>Scans de QR codes & conversion</h3>
+    <p class="sub">Combien de personnes ouvrent le formulaire via le QR, et combien vont jusqu'à signer.</p>
+    <div class="scan-kpis">
+      <div class="scan-kpi"><div class="sk-n" id="sc-scans">0</div><div class="sk-l">Scans</div></div>
+      <div class="scan-arrow">→</div>
+      <div class="scan-kpi"><div class="sk-n" id="sc-signed">0</div><div class="sk-l">Formulaires signés</div></div>
+      <div class="scan-arrow">=</div>
+      <div class="scan-kpi conv"><div class="sk-n" id="sc-rate">—</div><div class="sk-l">Taux de conversion</div></div>
+    </div>
+    <div class="scan-bysource" id="sc-bysource"></div>
+  </div>
+
   <div class="grid2">
     <div class="panel"><h3>Répartition par statut</h3><p class="sub">État actuel de la base.</p><div class="chartbox sm"><canvas id="ch-status"></canvas></div></div>
     <div class="panel"><h3>Par source de recueil</h3><p class="sub">D'où viennent les consentements.</p><div class="chartbox sm"><canvas id="ch-source"></canvas></div></div>
@@ -777,6 +803,19 @@ async function sbInsertMany(entries){
   (data||[]).forEach(r=>CACHE.unshift(fromRow(r)));
 }
 
+/* ---------- Scans de QR codes ---------- */
+let SCANS=[]; // rempli au chargement du tableau de bord
+async function sbInsertScan(source){
+  if(!sb) return;
+  try{ await sb.from('scans').insert({source:source}); }catch(e){ console.warn('scan non enregistré',e); }
+}
+async function sbLoadScans(){
+  if(!sb){SCANS=[];return;}
+  const {data,error}=await sb.from('scans').select('source,created_at');
+  if(error){console.warn('lecture scans',error);SCANS=[];return;}
+  SCANS=data||[];
+}
+
 
 /* ---------- Logos / paramètres ---------- */
 const LOGO_KEY='fordcaen_logos_v1';
@@ -890,7 +929,7 @@ async function show(v){
   document.getElementById('view-client').classList.toggle('hide',v!=='client');
   document.getElementById('view-dash').classList.toggle('hide',v!=='dash');
   document.body.classList.toggle('client-dark',v==='client');
-  if(v==='dash'){await sbLoadAll();renderDash();}
+  if(v==='dash'){await sbLoadAll();await sbLoadScans();renderDash();}
   if(v==='client')setTimeout(()=>{fit();if(typeof mFit==='function')mFit();},30);
 }
 function route(){show(location.hash==='#form'?'client':'dash');}
@@ -1191,6 +1230,15 @@ document.getElementById('d-source').addEventListener('change',buildQR);
 document.getElementById('print-qr').onclick=()=>window.print();
 window._src=new URLSearchParams(location.search).get('src')||'CRM';
 (function(){const s=window._src;if(s==='CRM'||s==='APV'||s==='Evenement Ext')csource.value=s;})();
+// Enregistrer un scan si la page est ouverte via un QR (paramètre ?src= présent)
+(function(){
+  const hasSrc=new URLSearchParams(location.search).has('src');
+  if(!hasSrc)return;                          // pas venu d'un QR
+  const key='scan_done_'+window._src;
+  if(sessionStorage.getItem(key))return;      // éviter le double comptage au rechargement
+  sessionStorage.setItem(key,'1');
+  sbInsertScan(window._src);
+})();
 
 /* ---------- Import CSV + doublons ---------- */
 document.getElementById('import-template').onclick=()=>{
@@ -1242,7 +1290,34 @@ function renderDash(){
   document.getElementById('s-exp').textContent=ex;
   document.getElementById('s-tot').textContent=d.length;
   try{drawCharts(d);}catch(e){}
+  try{renderScans(d);}catch(e){}
   applyAndDraw();
+}
+
+function renderScans(d){
+  const SRC=['CRM','APV','Evenement Ext'];
+  const LABEL={'CRM':'CRM - Commerces','APV':'APV','Evenement Ext':'Événement Ext.'};
+  // scans par source
+  const scanBy={CRM:0,APV:0,'Evenement Ext':0};
+  (SCANS||[]).forEach(s=>{if(scanBy[s.source]!==undefined)scanBy[s.source]++;});
+  const totScans=(SCANS||[]).length;
+  // signés = consentements réellement recueillis via le formulaire (hors imports)
+  const signedBy={CRM:0,APV:0,'Evenement Ext':0};
+  let totSigned=0;
+  d.forEach(x=>{
+    if(x.signature && (x.consent||x.refused)){ // a signé (accord ou refus)
+      totSigned++;
+      if(signedBy[x.source]!==undefined)signedBy[x.source]++;
+    }
+  });
+  const rate=(s,n)=>n>0?Math.round(s/n*100)+' %':'—';
+  document.getElementById('sc-scans').textContent=totScans;
+  document.getElementById('sc-signed').textContent=totSigned;
+  document.getElementById('sc-rate').textContent=rate(totSigned,totScans);
+  document.getElementById('sc-bysource').innerHTML=SRC.map(k=>
+    `<div class="scan-src"><div class="ss-name">${LABEL[k]}</div>
+      <div class="ss-line">${scanBy[k]} scan${scanBy[k]>1?'s':''} · ${signedBy[k]} signé${signedBy[k]>1?'s':''}</div>
+      <div class="ss-rate">${rate(signedBy[k],scanBy[k])}</div></div>`).join('');
 }
 
 function drawCharts(d){
