@@ -523,11 +523,48 @@
 
     <div class="card">
       <div class="sec" style="margin-bottom:0">
-        <div class="sec-head"><span class="sec-num">1</span><h3>Retrouvez votre fiche</h3></div>
-        <div class="field" style="margin-bottom:12px"><label class="f">Nom et prénom <span class="req">*</span></label>
-          <input type="text" id="r-nom" placeholder="Jean Dupont"></div>
-        <div class="field" style="margin-bottom:0"><label class="f">Téléphone ou email <span class="req">*</span></label>
-          <input type="text" id="r-id" placeholder="06 12 34 56 78 ou email"></div>
+        <div class="sec-head"><span class="sec-num">1</span><h3>Vos coordonnées</h3></div>
+        <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div><label class="f">Prénom <span class="req">*</span></label>
+            <input type="text" id="r-prenom" placeholder="Jean" autocomplete="given-name"></div>
+          <div><label class="f">Nom <span class="req">*</span></label>
+            <input type="text" id="r-nomfam" placeholder="Dupont" autocomplete="family-name"></div>
+        </div>
+
+        <div class="field" style="margin-bottom:12px">
+          <div class="toggle-pro" id="r-pro-box">
+            <span>Je suis un professionnel <span style="color:var(--muted);font-weight:400">(compte société)</span></span>
+            <div class="switch"></div>
+            <input type="checkbox" id="r-pro" class="hide">
+          </div>
+        </div>
+        <div class="field" id="r-pro-company-field" style="display:none;margin-bottom:12px">
+          <label class="f">Raison sociale <span class="req">*</span></label>
+          <input type="text" id="r-company" placeholder="Nom de la société">
+        </div>
+
+        <div class="field" style="margin-bottom:12px">
+          <label class="f">Téléphone <span class="req">*</span></label>
+          <div class="field-icon" id="r-tel-wrap">
+            <svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7 12.8 12.8 0 0 0 .7 2.8 2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4 12.8 12.8 0 0 0 2.8.7 2 2 0 0 1 1.7 2z"/></svg>
+            <input type="tel" id="r-tel" placeholder="06 12 34 56 78" autocomplete="tel">
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label class="f">Email <span class="req">*</span></label>
+          <div class="field-icon" id="r-mail-wrap">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="m22 6-10 7L2 6"/></svg>
+            <input type="email" id="r-mail" placeholder="jean.dupont@email.fr" autocomplete="email">
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label class="f">Où nous sommes-nous rencontrés ?</label>
+          <select id="r-source"><option value="CRM">CRM - Commerces</option><option value="APV">À l'atelier / après-vente</option><option value="Evenement Ext">Lors d'un événement extérieur</option></select>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label class="f">Véhicule concerné <span style="color:var(--muted);font-weight:400">(facultatif)</span></label>
+          <select id="r-vehicle"><option value="">— Non précisé —</option></select>
+        </div>
       </div>
     </div>
 
@@ -920,10 +957,12 @@ const DEFAULT_VEH=['Fiesta','Focus','Puma','Kuga','Mustang','Mustang Mach-E','Ra
 function loadVeh(){try{const v=JSON.parse(localStorage.getItem(VEH_KEY));return Array.isArray(v)?v:DEFAULT_VEH;}catch(e){return DEFAULT_VEH;}}
 function saveVeh(v){localStorage.setItem(VEH_KEY,JSON.stringify(v));}
 function renderVehClient(){
-  const sel=document.getElementById('c-vehicle');if(!sel)return;
-  const cur=sel.value;
-  sel.innerHTML='<option value="">— Non précisé —</option>'+loadVeh().map(v=>`<option value="${v.replace(/"/g,'&quot;')}">${v}</option>`).join('');
-  if(cur)sel.value=cur;
+  ['c-vehicle','r-vehicle'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    const cur=sel.value;
+    sel.innerHTML='<option value="">— Non précisé —</option>'+loadVeh().map(v=>`<option value="${v.replace(/"/g,'&quot;')}">${v}</option>`).join('');
+    if(cur)sel.value=cur;
+  });
 }
 function renderVehSettings(){
   const box=document.getElementById('veh-list');if(!box)return;
@@ -1065,7 +1104,7 @@ gateBtn.onclick=async()=>{
 gateModifyBtn.onclick=()=>{
   // basculer vers l'onglet Modifier avec l'email pré-rempli
   document.getElementById('email-gate').classList.add('hide');
-  const rid=document.getElementById('r-id');if(rid)rid.value=gateMail.value.trim();
+  const rMail=document.getElementById('r-mail');if(rMail)rMail.value=gateMail.value.trim();
   switchMode('revoke');
 };
 
@@ -1273,26 +1312,55 @@ mHintEl.addEventListener('mousedown',mArmSig);
 mHintEl.addEventListener('touchstart',function(e){e.preventDefault();mArmSig();},{passive:false});
 document.getElementById('msig-clear').onclick=()=>{mctx.clearRect(0,0,mcv.width,mcv.height);mHasSig=false;mSigArmed=false;mHintEl.style.display='';mHintEl.textContent='Signez ici avec votre doigt';mHintEl.classList.remove('sig-ready');};
 
+// Toggle "professionnel" du formulaire modifier
+const rPro=document.getElementById('r-pro'),rProBox=document.getElementById('r-pro-box'),
+  rCompanyField=document.getElementById('r-pro-company-field');
+rProBox.addEventListener('click',e=>{
+  if(e.target.tagName==='INPUT')return;
+  rPro.checked=!rPro.checked;
+  rProBox.classList.toggle('on',rPro.checked);
+  rCompanyField.style.display=rPro.checked?'block':'none';
+});
+
 document.getElementById('r-submit').onclick=async()=>{
-  const rn=document.getElementById('r-nom').value.trim(),ri=document.getElementById('r-id').value.trim();
-  if(!rn||!ri){alert('Merci de renseigner votre nom et un moyen de contact.');return;}
+  const prenom=document.getElementById('r-prenom').value.trim();
+  const nomfam=document.getElementById('r-nomfam').value.trim();
+  const tel=document.getElementById('r-tel').value.trim();
+  const mail=document.getElementById('r-mail').value.trim();
+  const isPro=rPro.checked;
+  const societe=isPro?document.getElementById('r-company').value.trim():'';
+  const source=document.getElementById('r-source').value;
+  const vehicule=document.getElementById('r-vehicle').value||'';
   const refuse=mRefuse.checked;
+
+  if(!prenom||!nomfam){alert('Merci de renseigner votre prénom et votre nom.');return;}
+  if(!tel&&!mail){alert('Merci de renseigner au moins un moyen de contact (téléphone ou email).');return;}
+  if(isPro&&!societe){alert('Merci de renseigner la raison sociale.');return;}
   if(!refuse && mSelectedChannels().length===0){alert('Sélectionnez au moins un moyen de contact.');return;}
   if(!mHasSig){alert('Merci de signer pour confirmer la modification.');return;}
+
   const now=new Date();
   const sig=mcv.toDataURL('image/png');
   const chans=refuse?[]:mSelectedChannels();
+  const fullNom=(prenom+' '+nomfam).trim();
+  const ident=mail||tel;   // identifiant de recherche de la fiche
   let found=false;
+
   if(sb){
-    const {data,error}=await sb.rpc('modifier_consentement',{
-      p_nom:rn,p_identifiant:ri,p_refuse:refuse,p_canaux:chans,p_signature:sig});
+    const {data,error}=await sb.rpc('modifier_consentement_v2',{
+      p_identifiant:ident, p_prenom:prenom, p_nom_famille:nomfam, p_nom:fullNom,
+      p_tel:tel, p_mail:mail, p_pro:isPro, p_societe:societe,
+      p_source:source, p_vehicule:vehicule,
+      p_refuse:refuse, p_canaux:chans, p_signature:sig});
     if(error){console.error(error);alert('Une erreur est survenue. Réessayez.');return;}
     found=(data||0)>0;
   }else{
-    const idn=norm(ri);
+    const idn=norm(ident);
     load().forEach(x=>{
-      if(norm(x.tel)===idn||norm(x.mail)===idn||norm(x.nom)===norm(rn)){
+      if(norm(x.tel)===idn||norm(x.mail)===idn||norm(x.nom)===norm(fullNom)){
         found=true;
+        x.prenom=prenom;x.nomFamille=nomfam;x.nom=fullNom;x.tel=tel;x.mail=mail;
+        x.pro=isPro;x.societe=societe;x.source=source;x.vehicule=vehicule;
         if(refuse){x.refused=true;x.consent=false;x.canaux=[];}
         else{x.refused=false;x.consent=true;x.revoked=false;x.canaux=chans;}
         x.signature=sig;x.ts=now.toISOString();
@@ -1304,7 +1372,7 @@ document.getElementById('r-submit').onclick=async()=>{
   }
   document.getElementById('revoke-title').textContent = refuse ? 'Accord retiré' : 'Modification enregistrée';
   document.getElementById('revoke-p').textContent = found
-    ? (refuse ? 'Nous ne vous contacterons plus à des fins commerciales.' : 'Vos moyens de contact ont bien été mis à jour.')
+    ? (refuse ? 'Nous ne vous contacterons plus à des fins commerciales.' : 'Vos informations ont bien été mises à jour.')
     : 'Demande enregistrée. Si vous figurez dans nos fichiers, elle sera prise en compte.';
   document.getElementById('revoke-stamp').innerHTML='Horodaté le <b>'+now.toLocaleString('fr-FR')+'</b>'+(refuse?'':'<br>Contact via : <b>'+chans.join(', ')+'</b>');
   document.getElementById('revoke-block').classList.add('hide');
