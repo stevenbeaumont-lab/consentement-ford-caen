@@ -777,9 +777,10 @@ function toRow(x){
 // Insertion d'un nouveau consentement (formulaire client)
 async function sbInsert(entry){
   if(!sb){entry.id='local-'+Date.now();CACHE.unshift(entry);localSave(CACHE);return true;}
-  const {data,error}=await sb.from('consentements').insert(toRow(entry)).select().single();
+  const {error}=await sb.from('consentements').insert(toRow(entry));
   if(error){console.error('Insert error',error);alert("Erreur d'enregistrement. Réessayez.");return false;}
-  CACHE.unshift(fromRow(data));return true;
+  // pas de relecture (réservée aux comptes connectés) : on ajoute au cache local
+  CACHE.unshift(entry);return true;
 }
 // Chargement depuis Supabase (tableau de bord, après connexion)
 async function sbLoadAll(){
@@ -798,9 +799,9 @@ async function sbDelete(id){
 // Import en lot (dédoublonnage géré côté appelant)
 async function sbInsertMany(entries){
   if(!sb){entries.forEach(e=>{e.id='local-'+Date.now()+Math.random();CACHE.unshift(e);});localSave(CACHE);return;}
-  const {data,error}=await sb.from('consentements').insert(entries.map(toRow)).select();
+  const {error}=await sb.from('consentements').insert(entries.map(toRow));
   if(error){console.error('Import error',error);return;}
-  (data||[]).forEach(r=>CACHE.unshift(fromRow(r)));
+  entries.forEach(e=>CACHE.unshift(e));
 }
 
 /* ---------- Scans de QR codes ---------- */
