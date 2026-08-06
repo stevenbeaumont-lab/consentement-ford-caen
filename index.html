@@ -45,6 +45,9 @@
   .header-link{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;
     font-size:13px;cursor:pointer;font-weight:600;padding:8px 13px;border-radius:9px;white-space:nowrap}
   .header-link:hover{background:rgba(255,255,255,.26)}
+  .back-btn{background:none;border:none;color:#5A6B80;font-size:14px;font-weight:600;cursor:pointer;
+    padding:8px 4px;margin-bottom:4px;display:inline-flex;align-items:center;border-radius:8px}
+  .back-btn:hover{color:#1B6EF3}
   .bar-actions{display:flex;gap:8px;align-items:center}
   .icon-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
     width:38px;height:38px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -384,7 +387,6 @@
       <div class="logo-sep"></div>
       <div class="logo-slot" id="logo2-client"><div class="brand"><div class="titles">Ford Caen<small>Groupe Legrand</small></div></div></div>
     </div>
-    <button class="header-link" id="header-mode-btn" data-mode="revoke">Modifier mon accord</button>
   </div>
 
   <div class="tabs hide" id="client-tabs">
@@ -423,6 +425,7 @@
 
   <!-- --- Donner accord --- -->
   <div id="give-block" class="hide">
+    <button class="back-btn" data-back="give">← Retour</button>
     <div class="hero">
       <div class="badge"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Valable 3 ans · Modifiable à tout moment</div>
       <h1>Restons en contact</h1>
@@ -547,6 +550,7 @@
 
   <!-- --- Retrait accord --- -->
   <div id="revoke-block" class="hide">
+    <button class="back-btn" data-back="revoke">← Retour</button>
     <div class="hero">
       <div class="badge" style="background:#E6EEFB;color:#1B4E8E"><svg viewBox="0 0 24 24" style="stroke:#1B4E8E"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Mettre à jour mes préférences</div>
       <h1>Modifier mon accord</h1>
@@ -1122,10 +1126,25 @@ function switchMode(mode){
   window.scrollTo(0,0);
   if(give)setTimeout(fit,30); else setTimeout(mFit,30);
 }
-document.getElementById('header-mode-btn').onclick=function(){switchMode(this.dataset.mode);};
 document.querySelectorAll('#client-tabs .tab').forEach(t=>{
   t.onclick=()=>switchMode(t.dataset.mode);
 });
+
+/* Bouton Retour : revenir à l'écran email d'entrée */
+function backToGate(){
+  document.getElementById('give-block').classList.add('hide');
+  document.getElementById('revoke-block').classList.add('hide');
+  document.getElementById('done-block').classList.add('hide');
+  document.getElementById('revoke-done').classList.add('hide');
+  const gate=document.getElementById('email-gate');
+  if(gate)gate.classList.remove('hide');
+  // réafficher le bouton Continuer si l'utilisateur revient
+  gateAlready.classList.add('hide');
+  gateModifyBtn.style.display='none';
+  gateBtn.style.display='';
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.back-btn').forEach(b=>b.onclick=backToGate);
 
 /* ---------- Écran email d'entrée (anti-doublon) ---------- */
 const gateMail=document.getElementById('gate-mail'),gateWrap=document.getElementById('gate-mail-wrap'),
