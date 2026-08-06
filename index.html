@@ -1324,11 +1324,28 @@ document.getElementById('d-source').addEventListener('change',buildQR);
 function printPoster(){
   const src=document.getElementById('d-source').value;
   const url=location.origin+location.pathname+'?src='+encodeURIComponent(src)+'#form';
-  // générer un grand QR dans un conteneur temporaire
+  // générer un grand QR dans un conteneur temporaire (hors écran)
   const tmp=document.createElement('div');
+  tmp.style.position='fixed';tmp.style.left='-9999px';tmp.style.top='0';
+  document.body.appendChild(tmp);
   new QRCode(tmp,{text:url,width:520,height:520,colorDark:'#00274D',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
-  const qrImg=tmp.querySelector('img'), qrCanvas=tmp.querySelector('canvas');
-  const qrSrc = qrImg ? qrImg.src : (qrCanvas ? qrCanvas.toDataURL() : '');
+  // attendre que la librairie ait dessiné le QR, puis récupérer une image fiable
+  function getQrSrc(){
+    const c=tmp.querySelector('canvas');
+    if(c){try{const u=c.toDataURL('image/png');if(u&&u.length>200)return u;}catch(e){}}
+    const im=tmp.querySelector('img');
+    if(im&&im.src&&im.src.length>200)return im.src;
+    return '';
+  }
+  let tries=0;
+  (function waitQR(){
+    const qrSrc=getQrSrc();
+    if(qrSrc){ tmp.remove(); openPoster(qrSrc); return; }
+    if(tries++>40){ tmp.remove(); alert("Le QR code n'a pas pu être généré. Réessayez."); return; }
+    setTimeout(waitQR,50);
+  })();
+
+  function openPoster(qrSrc){
   const l=loadLogos();
   const logo1=l.logo1||DEFAULT_LOGO1;
   const logo2=l.logo2||DEFAULT_LOGO2;
@@ -1393,6 +1410,7 @@ function printPoster(){
   <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>
   </body></html>`);
   w.document.close();
+  }
 }
 document.getElementById('print-qr').onclick=printPoster;
 window._src=new URLSearchParams(location.search).get('src')||'CRM';
