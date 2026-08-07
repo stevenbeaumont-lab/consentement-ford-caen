@@ -48,6 +48,11 @@
   .back-btn{background:none;border:none;color:#5A6B80;font-size:14px;font-weight:600;cursor:pointer;
     padding:8px 4px;margin-bottom:4px;display:inline-flex;align-items:center;border-radius:8px}
   .back-btn:hover{color:#1B6EF3}
+  .new-consent-btn{margin-top:22px;background:#fff;border:2px solid #1B6EF3;color:#1B6EF3;font-weight:700;
+    font-size:15px;padding:13px 22px;border-radius:12px;cursor:pointer;width:100%}
+  .new-consent-btn:hover{background:#1B6EF3;color:#fff}
+  .borne-countdown{margin-top:12px;font-size:13px;color:var(--muted)}
+  .borne-countdown b{color:#1B6EF3}
   .bar-actions{display:flex;gap:8px;align-items:center}
   .icon-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
     width:38px;height:38px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -675,6 +680,8 @@
         Laisser un avis
       </a>
     </div>
+    <button class="new-consent-btn" id="new-consent-btn">+ Nouveau consentement</button>
+    <div class="borne-countdown hide" id="borne-countdown"></div>
   </div>
 
   <!-- --- Confirmation modification --- -->
@@ -858,6 +865,15 @@
       </div>
     </div>
 
+    <div class="veh-section" style="border-top:1px solid var(--line);padding-top:18px;margin-top:18px">
+      <div class="toggle-pro" id="borne-box" style="cursor:pointer">
+        <span>Mode borne <span style="color:var(--muted);font-weight:400">(tablette en libre accès)</span></span>
+        <div class="switch"></div>
+        <input type="checkbox" id="borne-toggle" class="hide">
+      </div>
+      <p class="sub" style="margin-top:8px">Quand il est activé, le formulaire revient automatiquement au début après chaque signature, pour faire signer plusieurs clients à la suite.</p>
+    </div>
+
     <div class="modal-actions">
       <button class="btn" id="close-settings">Fermer</button>
     </div>
@@ -1028,6 +1044,19 @@ function readAndStoreLogo(file,slot){
 // événements paramètres
 document.getElementById('open-settings').onclick=()=>document.getElementById('settings-modal').classList.remove('hide');
 document.getElementById('close-settings').onclick=()=>document.getElementById('settings-modal').classList.add('hide');
+// Mode borne
+(function(){
+  const bt=document.getElementById('borne-toggle'),bb=document.getElementById('borne-box');
+  if(!bt||!bb)return;
+  const sync=()=>{const on=localStorage.getItem('fordcaen_borne_v1')==='1';bt.checked=on;bb.classList.toggle('on',on);};
+  sync();
+  bb.addEventListener('click',e=>{
+    if(e.target.tagName==='INPUT')return;
+    const on=localStorage.getItem('fordcaen_borne_v1')!=='1';
+    localStorage.setItem('fordcaen_borne_v1',on?'1':'0');
+    sync();
+  });
+})();
 document.getElementById('settings-modal').onclick=e=>{if(e.target.id==='settings-modal')e.currentTarget.classList.add('hide');};
 document.getElementById('up1').onchange=e=>{if(e.target.files[0])readAndStoreLogo(e.target.files[0],'logo1');};
 document.getElementById('up2').onchange=e=>{if(e.target.files[0])readAndStoreLogo(e.target.files[0],'logo2');};
@@ -1161,6 +1190,47 @@ function backToGate(){
   window.scrollTo(0,0);
 }
 document.querySelectorAll('.back-btn').forEach(b=>b.onclick=backToGate);
+
+/* ---------- Réinitialisation du formulaire (nouveau consentement / mode borne) ---------- */
+const BORNE_KEY='fordcaen_borne_v1';
+function borneOn(){return localStorage.getItem(BORNE_KEY)==='1';}
+let borneTimer=null;
+function resetGiveForm(){
+  ['c-prenom','c-nom','c-tel','c-mail','c-company'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const gm=document.getElementById('gate-mail');if(gm)gm.value='';
+  // véhicule + source par défaut
+  const cv2=document.getElementById('c-vehicle');if(cv2)cv2.value='';
+  const cs=document.getElementById('c-source');if(cs&&window._src&&['CRM','APV','Evenement Ext'].includes(window._src))cs.value=window._src;
+  // pro off
+  if(pro){pro.checked=false;proBox.classList.remove('on');companyField.style.display='none';}
+  // choix : accepter par défaut, tous canaux cochés
+  if(ok){ok.checked=true;no.checked=false;}
+  if(typeof onChoice==='function')onChoice();
+  // signature effacée
+  try{ctx.clearRect(0,0,cv.width,cv.height);}catch(e){}
+  hasSig=false;sigArmed=false;
+  if(sigHintEl){sigHintEl.style.display='';sigHintEl.textContent='Signez ici avec votre doigt';sigHintEl.classList.remove('sig-ready');}
+  // champs validés remis à zéro
+  document.querySelectorAll('#give-block .field-icon').forEach(w=>w.classList.remove('valid'));
+  document.querySelectorAll('#give-block .field-err').forEach(e=>e.classList.remove('show'));
+  if(typeof check==='function')check();
+}
+function goToStart(){
+  if(borneTimer){clearInterval(borneTimer);borneTimer=null;}
+  document.getElementById('borne-countdown').classList.add('hide');
+  resetGiveForm();
+  document.getElementById('done-block').classList.add('hide');
+  // en mode borne on repart directement sur le formulaire ; sinon sur l'écran email
+  if(borneOn()){
+    document.getElementById('email-gate').classList.add('hide');
+    document.getElementById('give-block').classList.remove('hide');
+    setTimeout(fit,30);
+  }else{
+    backToGate();
+  }
+  window.scrollTo(0,0);
+}
+document.getElementById('new-consent-btn').onclick=goToStart;
 
 /* ---------- Écran email d'entrée (anti-doublon) ---------- */
 const gateMail=document.getElementById('gate-mail'),gateWrap=document.getElementById('gate-mail-wrap'),
@@ -1402,6 +1472,19 @@ btn.onclick=async()=>{
   document.getElementById('give-block').classList.add('hide');
   doneBlock.classList.remove('hide');
   window.scrollTo(0,0);
+  // Mode borne : retour automatique au formulaire après quelques secondes
+  if(borneOn()){
+    const cd=document.getElementById('borne-countdown');
+    let n=8;
+    cd.classList.remove('hide');
+    cd.innerHTML='Retour au formulaire dans <b>'+n+'</b> s…';
+    if(borneTimer)clearInterval(borneTimer);
+    borneTimer=setInterval(()=>{
+      n--;
+      if(n<=0){clearInterval(borneTimer);borneTimer=null;goToStart();}
+      else cd.innerHTML='Retour au formulaire dans <b>'+n+'</b> s…';
+    },1000);
+  }
 };
 
 /* ---------- Retrait ---------- */
