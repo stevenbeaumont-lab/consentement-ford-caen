@@ -53,6 +53,11 @@
   .new-consent-btn:hover{background:#1B6EF3;color:#fff}
   .borne-countdown{margin-top:12px;font-size:13px;color:var(--muted)}
   .borne-countdown b{color:#1B6EF3}
+  .share-fallback{margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .share-fallback a{display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:10px;
+    font-weight:600;font-size:14px;text-decoration:none;border:1px solid var(--line);color:var(--ink);background:#fff}
+  .share-fallback a:hover{border-color:#1B6EF3;color:#1B6EF3}
+  .share-fallback a.copy{background:#EEF3FB;border-color:#D2E0F2;color:#1B4E8E}
   .bar-actions{display:flex;gap:8px;align-items:center}
   .icon-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
     width:38px;height:38px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -755,10 +760,20 @@
       <select id="d-source"><option value="CRM">CRM</option><option value="APV">APV (après-vente)</option><option value="Evenement Ext">Événement Ext.</option></select>
     </div>
     <div id="qr"></div>
+    <div class="field" style="max-width:260px;margin:14px auto 6px">
+      <label class="f" style="text-align:center">Format d'affiche</label>
+      <select id="poster-format">
+        <option value="a4">Affiche A4 (comptoir)</option>
+        <option value="a5">Affiche A5 (demi-page)</option>
+        <option value="tent">Chevalet de comptoir (recto-verso)</option>
+      </select>
+    </div>
     <div class="qractions">
       <button class="btn primary" id="open-form">Ouvrir le formulaire ici</button>
-      <button class="btn" id="print-qr">Imprimer le QR</button>
+      <button class="btn" id="print-qr">Imprimer l'affiche</button>
+      <button class="btn" id="share-link">Partager le lien</button>
     </div>
+    <div id="share-fallback" class="share-fallback hide"></div>
   </div>
 
   <div class="panel">
@@ -1651,6 +1666,7 @@ function buildQR(){
 document.getElementById('d-source').addEventListener('change',buildQR);
 
 function printPoster(){
+  const fmt=(document.getElementById('poster-format')||{}).value||'a4';
   const src=document.getElementById('d-source').value;
   const url=location.origin+location.pathname+'?src='+encodeURIComponent(src)+'#form';
   // générer un grand QR dans un conteneur temporaire (hors écran)
@@ -1678,41 +1694,49 @@ function printPoster(){
   const l=loadLogos();
   const logo1=l.logo1||DEFAULT_LOGO1;
   const logo2=l.logo2||DEFAULT_LOGO2;
+  // dimensions selon le format choisi
+  const cfg = fmt==='a5'
+    ? {page:'A5 portrait', w:'148mm', h:'210mm', pad:'10mm 12mm', logoH:'28px', h1:'22px', lead:'12.5px', qr:'62mm', cta:'14px', footpos:'static'}
+    : fmt==='tent'
+    ? {page:'A5 landscape', w:'210mm', h:'148mm', pad:'8mm 14mm', logoH:'26px', h1:'19px', lead:'12px', qr:'52mm', cta:'13px', footpos:'static'}
+    : {page:'A4 portrait', w:'210mm', h:'297mm', pad:'18mm 20mm', logoH:'44px', h1:'38px', lead:'18px', qr:'110mm', cta:'21px', footpos:'absolute'};
   const w=window.open('','_blank','width=800,height=1100');
   if(!w){alert("Autorisez les fenêtres pop-up pour imprimer l'affiche.");return;}
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Affiche QR — Ford Caen</title>
   <style>
-    @page{size:A4 portrait;margin:0}
+    @page{size:${cfg.page};margin:0}
     *{margin:0;padding:0;box-sizing:border-box}
     html,body{height:100%}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
       display:flex;align-items:center;justify-content:center;background:#fff}
-    .poster{width:210mm;height:297mm;padding:18mm 20mm;display:flex;flex-direction:column;align-items:center;
+    .poster{width:${cfg.w};height:${cfg.h};padding:${cfg.pad};display:flex;flex-direction:column;align-items:center;
       text-align:center;position:relative}
     .topbar{width:100%;background:#00274D;border-radius:16px;padding:18px 26px;display:flex;align-items:center;
       justify-content:center;gap:22px;margin-bottom:26px}
-    .topbar img{height:44px;max-width:190px;object-fit:contain}
+    .topbar img{height:${cfg.logoH};max-width:190px;object-fit:contain}
     .topbar .sep{width:1px;height:38px;background:rgba(255,255,255,.3)}
     .topbar .txt{color:#fff;text-align:left;font-weight:700;font-size:20px;line-height:1.1}
     .topbar .txt small{display:block;font-weight:500;font-size:13px;color:#AEC4E0;margin-top:2px}
     .badge{display:inline-block;background:#E4F3EA;color:#1D7A4C;font-weight:700;font-size:15px;
       padding:8px 20px;border-radius:30px;margin-bottom:18px;letter-spacing:.3px}
-    h1{font-size:38px;color:#00274D;line-height:1.15;margin-bottom:12px;letter-spacing:-.5px}
+    h1{font-size:${cfg.h1};color:#00274D;line-height:1.15;margin-bottom:12px;letter-spacing:-.5px}
     h1 span{color:#1B6EF3}
-    .lead{font-size:18px;color:#4A5568;max-width:150mm;margin-bottom:26px;line-height:1.5}
+    .lead{font-size:${cfg.lead};color:#4A5568;max-width:150mm;margin-bottom:26px;line-height:1.5}
     .qrbox{background:#fff;border:3px solid #E1E8F1;border-radius:22px;padding:20px;box-shadow:0 10px 34px rgba(0,39,77,.12)}
-    .qrbox img{display:block;width:110mm;height:110mm}
-    .scan-cta{display:flex;align-items:center;gap:12px;font-size:21px;color:#00274D;font-weight:700;margin:24px 0 8px}
+    .qrbox img{display:block;width:${cfg.qr};height:${cfg.qr}}
+    .scan-cta{display:flex;align-items:center;gap:12px;font-size:${cfg.cta};color:#00274D;font-weight:700;margin:24px 0 8px}
     .scan-cta svg{width:28px;height:28px;stroke:#00274D;fill:none;stroke-width:2}
     .steps{display:flex;gap:26px;justify-content:center;margin-top:4px;flex-wrap:wrap}
     .step{display:flex;align-items:center;gap:8px;font-size:15px;color:#4A5568}
     .step b{background:#1B6EF3;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;
       align-items:center;justify-content:center;font-size:13px}
-    .foot{position:absolute;bottom:12mm;left:0;right:0;font-size:12.5px;color:#8A97A8;
+    .foot{position:${cfg.footpos};bottom:12mm;left:0;right:0;font-size:12.5px;color:#8A97A8;
       display:flex;align-items:center;justify-content:center;gap:7px;padding:0 18mm}
+    .poster.compact{justify-content:flex-start}
+    .poster.compact .foot{margin-top:auto;padding-top:10px}
     .foot svg{width:15px;height:15px;stroke:#8A97A8;fill:none;stroke-width:1.8}
   </style></head><body>
-  <div class="poster">
+  <div class="poster${fmt==='a4'?'':' compact'}">
     <div class="topbar">
       <img src="${logo1}" alt="Ford" onerror="this.style.display='none'">
       <span class="sep"></span>
@@ -1742,6 +1766,29 @@ function printPoster(){
   }
 }
 document.getElementById('print-qr').onclick=printPoster;
+
+/* ---------- Partager le lien du formulaire ---------- */
+document.getElementById('share-link').onclick=async()=>{
+  const src=document.getElementById('d-source').value;
+  const url=location.origin+location.pathname+'?src='+encodeURIComponent(src)+'#form';
+  const texte='Ford Caen — recevez nos offres et restez informé : '+url;
+  // Web Share natif (mobile) si disponible
+  if(navigator.share){
+    try{ await navigator.share({title:'Ford Caen',text:'Recevez nos offres et restez informé',url:url}); return; }catch(e){ /* annulé */ }
+  }
+  // Sinon : menu de secours (SMS, WhatsApp, Email, Copier)
+  const fb=document.getElementById('share-fallback');
+  fb.classList.remove('hide');
+  fb.innerHTML=
+    '<a href="sms:?&body='+encodeURIComponent(texte)+'">✉️ SMS</a>'+
+    '<a href="https://wa.me/?text='+encodeURIComponent(texte)+'" target="_blank" rel="noopener">🟢 WhatsApp</a>'+
+    '<a href="mailto:?subject='+encodeURIComponent('Ford Caen — restez informé')+'&body='+encodeURIComponent(texte)+'">📧 Email</a>'+
+    '<a href="#" class="copy" id="copy-link">📋 Copier le lien</a>';
+  document.getElementById('copy-link').onclick=(e)=>{
+    e.preventDefault();
+    navigator.clipboard.writeText(url).then(()=>{e.target.textContent='✓ Lien copié';setTimeout(()=>{e.target.textContent='📋 Copier le lien';},2000);});
+  };
+};
 window._src=new URLSearchParams(location.search).get('src')||'CRM';
 (function(){const s=window._src;if(s==='CRM'||s==='APV'||s==='Evenement Ext')csource.value=s;})();
 // Enregistrer un scan si la page est ouverte via un QR (paramètre ?src= présent)
